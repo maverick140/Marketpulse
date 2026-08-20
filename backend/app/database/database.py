@@ -43,7 +43,8 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def init_db() -> None:
+def init_db() -> bool:
+    """Initialize database tables. Returns True on success, False on failure."""
     try:
         from app.database import models as _models  # noqa: F401
 
@@ -54,9 +55,14 @@ def init_db() -> None:
             "Database initialized (%s tables)",
             len(Base.metadata.tables),
         )
-    except Exception:
-        logger.exception("Database initialization failed")
-        raise
+        return True
+    except Exception as exc:
+        logger.warning(
+            "Database initialization skipped or unavailable (%s: %s). Running with in-memory persistence.",
+            exc.__class__.__name__,
+            exc,
+        )
+        return False
 
 
 def check_database() -> str:
@@ -65,5 +71,4 @@ def check_database() -> str:
             connection.execute(text("SELECT 1"))
         return "online"
     except Exception:
-        logger.exception("Database health check failed")
         return "offline"

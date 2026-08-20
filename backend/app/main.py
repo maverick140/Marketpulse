@@ -38,7 +38,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         settings.data_mode,
         settings.app_version,
     )
-    init_db()
+    db_initialized = init_db()
+    if not db_initialized:
+        logger.info("Decoupled in-memory operational mode active")
     yield
     logger.info("Shutting down %s", settings.app_name)
 

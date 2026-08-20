@@ -37,10 +37,18 @@ def _env(name: str, default: str) -> str:
 
 
 def _normalize_database_url(url: str) -> str:
-    """Resolve relative SQLite paths against the backend directory."""
+    """Resolve relative SQLite paths against the backend directory or /tmp in serverless."""
     prefix = "sqlite:///./"
+    is_serverless = (
+        os.getenv("VERCEL") == "1"
+        or os.getenv("VERCEL_ENV") is not None
+        or os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
+    )
     if url.startswith(prefix):
         relative = url[len(prefix) :]
+        if is_serverless:
+            # In Vercel and AWS Lambda, the root filesystem is read-only; /tmp is writable
+            return f"sqlite:////tmp/{relative}"
         absolute = (BACKEND_ROOT / relative).resolve()
         return f"sqlite:///{absolute.as_posix()}"
     return url
