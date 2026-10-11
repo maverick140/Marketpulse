@@ -41,31 +41,45 @@ class MacroExcelDataLoader:
         self._cached_metadata: dict[str, Any] = {}
         self._cached_mtimes: dict[str, float] = {}
 
-    def _resolve_raw_dir(self, raw_dir: Path | str | None) -> Path:
+        def _resolve_raw_dir(self, raw_dir: Path | str | None) -> Path:
+        """Resolve the macro workbook directory across local and Vercel deployments."""
+        candidates: list[Path] = []
+
         if raw_dir:
-            p = Path(raw_dir).resolve()
-            if p.is_dir():
-                return p
+            candidates.append(Path(raw_dir).expanduser())
 
         env_dir = os.getenv("MACRO_RAW_DIR")
         if env_dir:
-            p = Path(env_dir).resolve()
-            if p.is_dir():
-                return p
+            candidates.append(Path(env_dir).expanduser())
 
-        # Check repository root (parent of backend/)
-        backend_root = Path(__file__).resolve().parents[2]
+        # Derive locations from this source file, not the process working directory.
+        source = Path(__file__).resolve()
+
+        # backend/app/adapters/macro_excel.py
+        backend_root = source.parents[2]
         repo_root = backend_root.parent
-        if (repo_root / "raw").is_dir():
-            return (repo_root / "raw").resolve()
-        if (backend_root / "raw").is_dir():
-            return (backend_root / "raw").resolve()
 
-        cwd_raw = (Path.cwd() / "raw").resolve()
-        if cwd_raw.is_dir():
-            return cwd_raw
+        candidates.extend([
+            repo_root / "raw",
+            backend_root / "raw",
+            Path("/var/task/raw"),
+            Path("/var/raw"),
+        ])
 
-        # Default fallback to repo_root / raw
+        for candidate in candidates:
+            candidate = candidate.resolve()
+            if all(
+                (candidate / filename).is_file()
+                for filename in (
+                    "RBI_Rates.xlsx",
+                    "gdp_data.xlsx",
+                    "inflation_data.xlsx",
+                )
+            ):
+                return candidate
+
+        # Return the expected repository location so existing error messages
+        # identify the path that was checked.
         return (repo_root / "raw").resolve()
 
     def _get_file_mtimes(self) -> dict[str, float]:
