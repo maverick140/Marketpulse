@@ -92,6 +92,18 @@ class MacroExcelDataLoader:
             return self._cached_indicators or [], self._cached_history or {}
 
         logger.info("Parsing macroeconomic Excel workbooks from: %s", self.raw_dir)
+        logger.info("Macro raw directory exists: %s", self.raw_dir.is_dir())
+        logger.info(
+            "Macro workbook availability: %s",
+            {
+                name: (self.raw_dir / name).is_file()
+                for name in [
+                    "RBI_Rates.xlsx",
+                    "gdp_data.xlsx",
+                    "inflation_data.xlsx",
+                ]
+            },
+        )
         repo_record, repo_history = self._parse_rbi_repo_rates()
         gdp_record, gdp_history = self._parse_gdp_growth()
         cpi_record, cpi_history = self._parse_cpi_inflation()
