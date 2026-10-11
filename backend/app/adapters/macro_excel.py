@@ -58,8 +58,8 @@ class MacroExcelDataLoader:
         repo_root = backend_root.parent
 
         candidates.extend([
-            repo_root / "raw",
             backend_root / "raw",
+            repo_root / "raw",
             Path("/var/task/raw"),
             Path("/var/raw"),
         ])
