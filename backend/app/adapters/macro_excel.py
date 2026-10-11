@@ -41,7 +41,8 @@ class MacroExcelDataLoader:
         self._cached_metadata: dict[str, Any] = {}
         self._cached_mtimes: dict[str, float] = {}
 
-        def _resolve_raw_dir(self, raw_dir: Path | str | None) -> Path:
+    
+    def _resolve_raw_dir(self, raw_dir: Path | str | None) -> Path:
         """Resolve the macro workbook directory across local and Vercel deployments."""
         candidates: list[Path] = []
 
@@ -52,10 +53,7 @@ class MacroExcelDataLoader:
         if env_dir:
             candidates.append(Path(env_dir).expanduser())
 
-        # Derive locations from this source file, not the process working directory.
         source = Path(__file__).resolve()
-
-        # backend/app/adapters/macro_excel.py
         backend_root = source.parents[2]
         repo_root = backend_root.parent
 
@@ -66,21 +64,22 @@ class MacroExcelDataLoader:
             Path("/var/raw"),
         ])
 
+        required_files = (
+            "RBI_Rates.xlsx",
+            "gdp_data.xlsx",
+            "inflation_data.xlsx",
+        )
+
         for candidate in candidates:
             candidate = candidate.resolve()
-            if all(
+            if candidate.is_dir() and all(
                 (candidate / filename).is_file()
-                for filename in (
-                    "RBI_Rates.xlsx",
-                    "gdp_data.xlsx",
-                    "inflation_data.xlsx",
-                )
+                for filename in required_files
             ):
                 return candidate
 
-        # Return the expected repository location so existing error messages
-        # identify the path that was checked.
         return (repo_root / "raw").resolve()
+
 
     def _get_file_mtimes(self) -> dict[str, float]:
         mtimes: dict[str, float] = {}
